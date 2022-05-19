@@ -42,7 +42,7 @@ async function run() {
        res.send(result);
    });
 
-   //restocking
+   //restocking and delivering
    app.put('/update-product/:id', async(req, res) => {
        const id = req.params.id;
        console.log(req.body);
@@ -58,22 +58,6 @@ async function run() {
        res.send(result);
    });
 
-   //delivering
-   app.put('/update-product/:id', async(req, res) => {
-    const id = req.params.id;
-    console.log(req.body);
-    const updateProduct = Number(req.body.newQuantity);
-    const query = { _id: ObjectId(id) };
-    const options = {upsert: true};
-    const updatedDoc ={
-        $set: {
-            quantity: parseInt(updateProduct)
-        }
-    };
-    const result = await productCollection.updateOne(query, updatedDoc, options);
-    res.send(result);
-})
-
     //deleting
     app.delete('/products/:id',async(req, res) =>{
         const id = req.params.id;
@@ -86,7 +70,9 @@ async function run() {
 
 
     }
-    finally { }
+    finally {
+        
+     }
 }
 run().catch(console.dir);
 
