@@ -1,7 +1,9 @@
 const express = require('express');
 const { MongoClient, ServerApiVersion } = require('mongodb');
+require('dotenv').config();
 const ObjectId = require('mongodb').ObjectId;
 const cors = require('cors');
+const res = require('express/lib/response');
 const port = process.env.PORT || 5000;
 const app = express();
 
@@ -12,13 +14,17 @@ app.use(express.json());
 
 
 
-const uri = `mongodb+srv://dbPlantPlanet:R6fioYRhJlhwjSWE@cluster0.rjowz.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
+// const uri = `mongodb+srv://dbPlantPlanet:R6fioYRhJlhwjSWE@cluster0.rjowz.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.rjowz.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
+
+
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 async function run() {
     try {
         await client.connect();
         const productCollection = client.db('plantPlanet').collection('products');
+        const myProductCollection = client.db('plantPlanet').collection('myProducts')
 
         //getting products 
         app.get('/products', async (req, res) => {
@@ -28,51 +34,94 @@ async function run() {
             res.send(products)
         });
 
+        app.get('/my-products', async (req, res) => {
+            const query = {};
+            const cursor = myProductCollection.find(query);
+            const products = await cursor.toArray();
+            res.send(products)
+        });
+
         app.get('/update-product/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await productCollection.findOne(query);
             res.send(result);
-   });
+        });
 
-   //posting data
-   app.post('/products', async(req, res) =>{
-       const newProduct = req.body;
-       const result = await productCollection.insertOne(newProduct);
-       res.send(result);
-   });
+        app.get('/update-my-product/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await myProductCollection.findOne(query);
+            res.send(result);
+        });
 
-   //restocking and delivering
-   app.put('/update-product/:id', async(req, res) => {
-       const id = req.params.id;
-       console.log(req.body);
-       const updateProduct = Number(req.body.newQuantity);
-       const query = { _id: ObjectId(id) };
-       const options = {upsert: true};
-       const updatedDoc ={
-           $set: {
-               quantity: parseInt(updateProduct)
-           }
-       };
-       const result = await productCollection.updateOne(query, updatedDoc, options);
-       res.send(result);
-   });
+        //posting data
+        app.post('/products', async (req, res) => {
+            const newProduct = req.body;
+            const result = await productCollection.insertOne(newProduct);
+            res.send(result);
+        });
 
-    //deleting
-    app.delete('/products/:id',async(req, res) =>{
-        const id = req.params.id;
-        const query = { _id: ObjectId(id) };
-        const result = await productCollection.deleteOne(query);
-        res.send(result);
+        //FOR MY PRODUCTS
+        app.post('/my-products', async (req, res) => {
+            const myProduct = req.body;
+            const result = await myProductCollection.insertOne(myProduct);
+            res.send(result);
+        })
 
-    })
+        //restocking and delivering for all (well all means from the first collection!)
+        app.put('/update-product/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(req.body);
+            const updateProduct = Number(req.body.newQuantity);
+            const query = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    quantity: parseInt(updateProduct)
+                }
+            };
+            const result = await productCollection.updateOne(query, updatedDoc, options);
+            res.send(result);
+        });
+
+        //restocking and delivering for my products
+        app.put('/update-my-product/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(req.body);
+            const updateMyProduct = Number(req.body.newQuantity);
+            const query = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    quantity: parseInt(updateMyProduct)
+                }
+            };
+            const result = await myProductCollection.updateOne(query, updatedDoc, options);
+            res.send(result);
+        });
+
+        //deleting
+        app.delete('/products/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await productCollection.deleteOne(query);
+            res.send(result);
+        });
+
+        app.delete('/my-products/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await myProductCollection.deleteOne(query);
+            res.send(result);
+        })
 
 
 
     }
     finally {
-        
-     }
+
+    }
 }
 run().catch(console.dir);
 
