@@ -60,7 +60,19 @@ async function run() {
             res.send(products)
         });
 
-        
+        app.get('/my-products', verifyJWT, async (req, res) => {
+           const decodedEmail = req.decoded.email;
+            const email = req.query.email;
+            if(email === decodedEmail){
+                const query = { email: email };
+            const cursor = myProductCollection.find(query);
+            const products = await cursor.toArray();
+            res.send(products)
+            }
+            else{
+                res.status(403).send({message: 'forbidden access'})
+            }
+        });
 
         app.get('/update-product/:id', async (req, res) => {
             const id = req.params.id;
